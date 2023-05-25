@@ -1,0 +1,423 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+vector<vector<double>> transitionMatrix;
+int n, s = 0;
+set<int> st;
+string statues="";
+
+void getReachableStates(int startState)
+{
+    int numStates = transitionMatrix.size();
+    unordered_set<int> reachableStates;
+    queue<int> stateQueue;
+    vector<bool> visited(numStates, false);
+
+    stateQueue.push(startState);
+    visited[startState] = true;
+
+    while (!stateQueue.empty())
+    {
+        int currentState = stateQueue.front();
+        stateQueue.pop();
+
+        for (int nextState = 0; nextState < numStates; nextState++)
+        {
+            if (transitionMatrix[currentState][nextState] > 0.0 && !visited[nextState])
+            {
+                visited[nextState] = true;
+                stateQueue.push(nextState);
+            }
+        }
+    }
+
+    for (int state = 0; state < numStates; state++)
+    {
+        if (visited[state])
+        {
+            reachableStates.insert(state);
+        }
+    }
+
+    // Exclude start state if there is no self-transition
+    if (transitionMatrix[startState][startState] == 0.0)
+    {
+        reachableStates.erase(startState);
+    }
+
+    cout << "Reachable states from state " << startState + 1 << ": ";
+    for (int state : reachableStates)
+    {
+        cout << state + 1 << " ";
+    }
+    cout << endl;
+    /*
+0.4 0.6 0 0 0
+0.5 0.5 0 0 0
+0 0 0.3 0.7 0
+0 0 0.5 0.4 0.1
+0 0 0 0.8 0.2
+*/
+}
+
+void absorbing()
+{
+    vector<int> ans;
+    for (int i = 0; i < n; i++)
+    {
+        int c1 = 0, c2 = 0;
+        for (int j = 0; j < n; j++)
+        {
+            if (transitionMatrix[i][j] == 1 && j == i)
+            {
+                c1++;
+            }
+            else if (transitionMatrix[i][j] == 0 && j != i)
+            {
+                c2++;
+            }
+        }
+        if (c1 == 1 && c2 == n - 1)
+        {
+            ans.push_back(i + 1);
+        }
+    }
+
+    if (ans.empty())
+    {
+        cout << "There is no absorbed states.\n";
+    }
+    else
+    {
+        cout << "The absorbed state/s is: ";
+        for (auto &&i : ans)
+        {
+            cout << i << " ";
+        }
+        cout << endl;
+       
+        
+    }
+    /*
+     0.1 0.3 0.4 0.2
+     0 0.2 0.1 0.7
+     0 0 1 0
+     0 0 0 1
+     */
+}
+
+void recurrent()
+{
+    vector<int> ans;
+    for (int i = 0; i < n; i++)
+    {
+        int c1 = 0;
+        for (int j = 0; j < n; j++)
+        {
+            if (transitionMatrix[i][j] == 1 && j == i)
+            {
+                c1++;
+            }
+        }
+        if (c1 == 1)
+        {
+            ans.push_back(i + 1);
+        }
+    }
+    if (ans.empty())
+    {
+        cout << "There is no recurrent states.\n";
+    }
+    else
+    {
+        cout << "The recurrent state/s is: ";
+        for (auto &&i : ans)
+        {
+            cout << i << " ";
+        }
+        cout << endl;
+    }
+
+    /*
+     1 0 0
+     0 1 1
+     0 1 0
+     */
+}
+
+void transient()
+{
+    vector<int> ans;
+    for (int i = 0; i < n; i++)
+    {
+        int c1 = 0;
+        for (int j = 0; j < n; j++)
+        {
+            if (transitionMatrix[i][j] < 1 && transitionMatrix[i][j] > 0)
+            {
+                c1++;
+            }
+        }
+        if (c1)
+        {
+            ans.push_back(i + 1);
+        }
+    }
+    if (ans.empty())
+    {
+        cout << "There is no transient states.\n";
+    }
+    else
+    {
+        cout << "The transient state/s is: ";
+        for (auto &&i : ans)
+        {
+            cout << i << " ";
+        }
+        cout << endl;
+    }
+    /*
+     3
+     0 0.5 0.5
+     0.5 0.5 0
+     0 0 1
+     5
+     1 0 0 0
+     0.6 0 0.4 0
+     0 0.6 0 0.4
+     0 0 0 1
+     */
+}
+
+bool checkCycle(int node, vector<int> adj[], vector<int> vis, vector<int> dfsVis)
+{
+    vis[node] = 1;
+    dfsVis[node] = 1;
+    s++;
+    for (auto it : adj[node])
+    {
+        if (!vis[it])
+        {
+            if (checkCycle(it, adj, vis, dfsVis))
+                return true;
+        }
+        else if (dfsVis[it])
+        {
+            return true;
+        }
+    }
+    dfsVis[node] = 0;
+    return false;
+}
+
+void periodic()
+{
+    vector<int> adj[n];
+    for (int i = 0; i < n; ++i)
+    {
+        for (int j = 0; j < n; ++j)
+        {
+            if (transitionMatrix[i][j] > 0)
+                adj[i].push_back(j);
+        }
+    }
+    vector<int> vis(n), dfsVis(n);
+    for (int i = 0; i < n; i++)
+    {
+        vis.resize(n, 0), dfsVis.resize(n, 0);
+        s = 0;
+        if (checkCycle(i, adj, vis, dfsVis))
+        {
+            st.insert(s);
+        }
+    }
+    if (st.size() == 1)
+        cout << "Periodic with period equal= " << *st.begin();
+
+    else
+    {
+        cout << "aPeriodic";
+        statues="Markov Chain is aPeriodic.";
+    }
+}
+void normalizeVector(vector<double> &vec)
+{
+    double sum = 0.0;
+    for (double element : vec)
+    {
+        sum += element;
+    }
+    for (double &element : vec)
+    {
+        element /= sum;
+    }
+}
+
+vector<double> computeSteadyState(const vector<vector<double>> &transitionMatrix)
+{
+    int n = transitionMatrix.size();
+
+    // Initialize the initial probability vector with equal probabilities
+    vector<double> probabilityVector(n, 1.0 / n);
+
+    // Iterate until convergence (reaching steady state)
+    double epsilon = 1e-6; // Convergence threshold
+    double diff = 1.0;     // Difference between consecutive probability vectors
+    while (diff > epsilon)
+    {
+        vector<double> nextVector(n, 0.0); // Next probability vector
+
+        // Multiply the current probability vector with the transition matrix
+        for (int j = 0; j < n; j++)
+        {
+            for (int k = 0; k < n; k++)
+            {
+                nextVector[j] += probabilityVector[k] * transitionMatrix[k][j];
+            }
+        }
+
+        // Normalize the next probability vector
+        normalizeVector(nextVector);
+
+        // Calculate the difference between the current and next probability vectors
+        diff = 0.0;
+        for (int i = 0; i < n; i++)
+        {
+            diff += abs(probabilityVector[i] - nextVector[i]);
+        }
+
+        // Update the probability vector
+        probabilityVector = nextVector;
+    }
+
+    return probabilityVector;
+}
+
+vector<vector<double>> matrixMultiplication(const vector<vector<double>> &matrix1, const vector<vector<double>> &matrix2)
+{
+    int rows1 = matrix1.size();
+    int cols1 = matrix1[0].size();
+    int cols2 = matrix2[0].size();
+
+    vector<vector<double>> result(rows1, vector<double>(cols2, 0.0));
+
+    for (int i = 0; i < rows1; i++)
+    {
+        for (int j = 0; j < cols2; j++)
+        {
+            for (int k = 0; k < cols1; k++)
+            {
+                result[i][j] += matrix1[i][k] * matrix2[k][j];
+            }
+        }
+    }
+
+    return result;
+}
+
+vector<vector<double>> matrixPower(const vector<vector<double>> &matrix, int n)
+{
+    int size = matrix.size();
+
+    // Create an identity matrix
+    vector<vector<double>> result(size, vector<double>(size, 0.0));
+    for (int i = 0; i < size; i++)
+    {
+        result[i][i] = 1.0;
+    }
+
+    // Perform matrix multiplication n times
+    for (int i = 0; i < n; i++)
+    {
+        result = matrixMultiplication(result, matrix);
+    }
+
+    return result;
+}
+
+int main()
+{
+    cout << " Enter the size of the matrix: ";
+    cin >> n;
+    transitionMatrix.resize(n, vector<double>(n));
+    cout << "\n Enter the the matrix: \n";
+    for (int i = 0; i < n; i++)
+    {
+        for (int j = 0; j < n; j++)
+        {
+            cin >> transitionMatrix[i][j];
+        }
+    }
+    //---------------------------------------------------------------------------------------------
+    vector<vector<double>> Iv;
+    Iv.resize(n, vector<double>(n));
+
+    cout << "\n Enter the the Initial vector: \n";
+    for (int i = 0; i < 1; i++)
+    {
+        for (int j = 0; j < n; j++)
+        {
+            cin >> Iv[i][j];
+        }
+    }
+    cout << endl;
+    for (int i = 1; i <= n; i++)
+    {
+        vector<vector<double>> result = matrixPower(transitionMatrix, i);
+        vector<vector<double>> multi = matrixMultiplication(Iv, result);
+        // Print the result
+
+        cout << "probability state " << i << " :" << endl;
+        for (int i = 0; i < multi[0].size(); i++)
+        {
+            cout << multi[0][i] << "  ";
+        }
+        cout << endl;
+    }
+    cout << endl;
+    //---------------------------------------------------------------------------------------------
+    vector<double> steadyState = computeSteadyState(transitionMatrix);
+
+    // Print the steady state probabilities
+    cout << "Steady State Probabilities:\n";
+    for (int i = 0; i < steadyState.size(); i++)
+    {
+        cout << "State " << i + 1 << ": " << steadyState[i] << endl;
+    }
+
+    cout << '\n';
+    //---------------------------------------------------------------------------------------------
+
+    // Reachable
+    cout << "Reachable--------------------------------\n";
+    for (int i = 0; i < n; i++)
+    {
+        int startState = i;
+        getReachableStates(startState);
+    }
+    // absorbing
+    cout << "\nAbsorbing------------------------------\n";
+    absorbing();
+    // recurrent
+    cout << "\nRecurrent------------------------------\n";
+    recurrent();
+    // transient
+    cout << "\nTransient------------------------------\n";
+    transient();
+    // Periodic
+    cout << "\nPeriodic-------------------------------\n";
+    periodic();
+    //---------------------------------------------------------------------------------------------
+    cout << endl;
+    if (statues!="")
+    {
+        cout<<statues<<endl;
+    }
+    
+
+    return 0;
+}
+// 1 0 0 0
+// 0.6 0.4 0 0
+// 0 0.6 0 0.4
+// 0 0 0 1
